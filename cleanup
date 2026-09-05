@@ -1,2 +1,2 @@
 #!/bin/sh
-rm -f src/Makevars src/*.o src/*.so src/*.dll conftest conftest.cpp conftest.log conftest.mps
+rm -rf src/Makevars src/*.o src/*.so src/*.dll conftest conftest.cpp conftest.log conftest.mps conftest.dSYM

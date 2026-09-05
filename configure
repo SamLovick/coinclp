@@ -60,16 +60,15 @@ fi
 
 # ---------------------------------------------------------------- helpers
 
-CONF_DIR=`pwd`
 compile_and_link() {
     # $1: source text, $2: extra defines.  Sets nothing; returns 0 on success.
     cat > conftest.cpp
     if ${CXX} ${CXXFLAGS} ${CPPFLAGS_R} $2 ${CLP_CFLAGS} conftest.cpp -o conftest \
         ${LDFLAGS_R} ${CLP_LIBS} >conftest.log 2>&1; then
-        rm -f conftest conftest.cpp conftest.log
+        rm -rf conftest conftest.cpp conftest.log conftest.dSYM
         return 0
     fi
-    rm -f conftest conftest.cpp
+    rm -rf conftest conftest.cpp conftest.dSYM
     return 1
 }
 
@@ -170,7 +169,7 @@ CONFTEST
     fi
 fi
 
-rm -f conftest conftest.cpp conftest.log conftest.mps
+rm -rf conftest conftest.cpp conftest.log conftest.mps conftest.dSYM
 
 # ---------------------------------------------------------------- output
 
