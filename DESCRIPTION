@@ -1,0 +1,30 @@
+Package: coinclp
+Type: Package
+Title: R Interface to the 'COIN-OR' 'Clp' Linear Programming Solver
+Version: 0.1.0
+Authors@R: c(
+    person("Sam", "Lovick", email = "sam@lovickconsulting.com",
+           role = c("aut", "cre")))
+Description: Solves linear programs with 'Clp', the simplex and interior
+    point code of the 'COIN-OR' project <https://github.com/coin-or/Clp>.
+    Provides a one-call solver interface for dense and sparse constraint
+    matrices, and complete low level bindings to the 'Clp' callable library
+    covering problem construction, warm starts, presolve options, basis
+    access and 'MPS' files. A compatibility layer reproduces the interface
+    of the archived 'clpAPI' package so that existing code keeps working.
+    'Clp' itself is not bundled and must be installed on the system; the
+    'Rtools' toolchain supplies it on 'Windows'.
+License: EPL
+URL: https://github.com/SamLovick/coinclp
+BugReports: https://github.com/SamLovick/coinclp/issues
+Encoding: UTF-8
+Depends: R (>= 4.0)
+Imports: methods, stats, utils
+Suggests: Matrix, slam, knitr, rmarkdown
+VignetteBuilder: knitr
+SystemRequirements: COIN-OR Clp (>= 1.16) with development headers, and a
+    C++17 compiler. Debian/Ubuntu: coinor-libclp-dev, Fedora:
+    coin-or-Clp-devel, macOS: brew install clp, Windows: supplied by Rtools.
+NeedsCompilation: yes
+Roxygen: list(markdown = FALSE)
+Config/roxygen2/version: 8.1.0

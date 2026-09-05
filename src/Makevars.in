@@ -1,0 +1,4 @@
+## Generated from Makevars.in by ./configure -- edit Makevars.in instead.
+
+PKG_CPPFLAGS = @COINCLP_CPPFLAGS@
+PKG_LIBS = @COINCLP_LIBS@

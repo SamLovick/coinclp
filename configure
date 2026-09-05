@@ -1,0 +1,184 @@
+#!/bin/sh
+# Locate an installed COIN-OR Clp and record what this build can use.
+#
+# Search order for the compiler and linker flags:
+#   1. --with-clp-include= / --with-clp-lib= configure arguments
+#   2. the CLP_CFLAGS / CLP_LIBS environment variables
+#   3. pkg-config --cflags --libs clp
+#   4. a plain -lClp -lCoinUtils, letting the compiler use its default paths
+#
+# Feature macros for entry points that only exist in newer Clp releases are
+# decided by link tests rather than by version numbers, so distribution
+# patches and development builds are handled correctly.
+
+set -e
+
+PKG_NAME="coinclp"
+
+CLP_INCLUDE_DIR=""
+CLP_LIB_DIR=""
+for arg in "$@"; do
+    case "$arg" in
+        --with-clp-include=*) CLP_INCLUDE_DIR=`echo "$arg" | sed 's/^--with-clp-include=//'` ;;
+        --with-clp-lib=*)     CLP_LIB_DIR=`echo "$arg" | sed 's/^--with-clp-lib=//'` ;;
+    esac
+done
+
+if [ -z "$R_HOME" ]; then
+    R_HOME=`R RHOME`
+fi
+R_BIN="${R_HOME}/bin/R"
+
+CXX=`"${R_BIN}" CMD config CXX`
+CXXFLAGS=`"${R_BIN}" CMD config CXXFLAGS`
+CPPFLAGS_R=`"${R_BIN}" CMD config CPPFLAGS`
+LDFLAGS_R=`"${R_BIN}" CMD config LDFLAGS`
+
+# ---------------------------------------------------------------- flags
+
+if [ -n "$CLP_INCLUDE_DIR" ] || [ -n "$CLP_LIB_DIR" ]; then
+    [ -n "$CLP_INCLUDE_DIR" ] && CLP_CFLAGS="-I${CLP_INCLUDE_DIR}"
+    [ -n "$CLP_LIB_DIR" ] && CLP_LIBS="-L${CLP_LIB_DIR} -lClp -lCoinUtils"
+    [ -z "$CLP_LIBS" ] && CLP_LIBS="-lClp -lCoinUtils"
+    echo "checking for Clp... using --with-clp-* arguments"
+elif [ -n "${CLP_CFLAGS}${CLP_LIBS}" ]; then
+    [ -z "$CLP_LIBS" ] && CLP_LIBS="-lClp -lCoinUtils"
+    echo "checking for Clp... using CLP_CFLAGS / CLP_LIBS from the environment"
+else
+    PKG_CONFIG=${PKG_CONFIG-pkg-config}
+    if "${PKG_CONFIG}" --version >/dev/null 2>&1 && "${PKG_CONFIG}" --exists clp 2>/dev/null; then
+        CLP_CFLAGS=`"${PKG_CONFIG}" --cflags clp`
+        CLP_LIBS=`"${PKG_CONFIG}" --libs clp`
+        CLP_PC_VERSION=`"${PKG_CONFIG}" --modversion clp`
+        echo "checking for Clp... ${CLP_PC_VERSION} (pkg-config)"
+    else
+        CLP_CFLAGS=""
+        CLP_LIBS="-lClp -lCoinUtils"
+        echo "checking for Clp... pkg-config found nothing, trying default paths"
+    fi
+fi
+
+# ---------------------------------------------------------------- helpers
+
+CONF_DIR=`pwd`
+compile_and_link() {
+    # $1: source text, $2: extra defines.  Sets nothing; returns 0 on success.
+    cat > conftest.cpp
+    if ${CXX} ${CXXFLAGS} ${CPPFLAGS_R} $2 ${CLP_CFLAGS} conftest.cpp -o conftest \
+        ${LDFLAGS_R} ${CLP_LIBS} >conftest.log 2>&1; then
+        rm -f conftest conftest.cpp conftest.log
+        return 0
+    fi
+    rm -f conftest conftest.cpp
+    return 1
+}
+
+# ------------------------------------------------- header location & link
+
+COINCLP_DEFS="-DCOINCLP_CONFIGURED"
+
+printf "checking for Clp_C_Interface.h... "
+if compile_and_link "" "" <<'CONFTEST'
+#include <Clp_C_Interface.h>
+int main(void) { return Clp_Version() == 0; }
+CONFTEST
+then
+    echo "found, and Clp links"
+elif compile_and_link "" "-DCOINCLP_COIN_SUBDIR" <<'CONFTEST'
+#include <coin/Clp_C_Interface.h>
+int main(void) { return Clp_Version() == 0; }
+CONFTEST
+then
+    COINCLP_DEFS="${COINCLP_DEFS} -DCOINCLP_COIN_SUBDIR"
+    echo "found in a coin/ subdirectory, and Clp links"
+else
+    echo "no"
+    cat conftest.log 2>/dev/null || true
+    rm -f conftest.log
+    cat <<'MESSAGE'
+--------------------------- ERROR ---------------------------------
+Configuration of coinclp failed: the COIN-OR Clp callable library
+could not be compiled against and linked.
+
+coinclp needs a Clp installation (>= 1.16) with its headers, which
+is packaged as:
+
+  Debian / Ubuntu:  apt-get install coinor-libclp-dev
+  Fedora / RHEL:    dnf install coin-or-Clp-devel
+  macOS (Homebrew): brew install clp
+  conda-forge:      conda install coin-or-clp
+
+If Clp is installed somewhere pkg-config does not look, point the
+build at it, for example:
+
+  R CMD INSTALL coinclp --configure-args='--with-clp-include=/opt/clp/include/coin \
+                                          --with-clp-lib=/opt/clp/lib'
+
+or set CLP_CFLAGS and CLP_LIBS in the environment.
+-------------------------------------------------------------------
+MESSAGE
+    exit 1
+fi
+
+if [ "${COINCLP_DEFS#*COIN_SUBDIR}" != "${COINCLP_DEFS}" ]; then
+    CLP_HEADER="coin/Clp_C_Interface.h"
+    SUBDIR_DEF="-DCOINCLP_COIN_SUBDIR"
+else
+    CLP_HEADER="Clp_C_Interface.h"
+    SUBDIR_DEF=""
+fi
+
+# ------------------------------------------------------- optional entries
+
+check_symbol() {
+    # $1 human name, $2 define, $3 body using the entry point
+    printf "checking for %s... " "$1"
+    if compile_and_link "" "${SUBDIR_DEF}" <<CONFTEST
+#include <${CLP_HEADER}>
+int main(void) { Clp_Simplex *m = Clp_newModel(); $3 Clp_deleteModel(m); return 0; }
+CONFTEST
+    then
+        COINCLP_DEFS="${COINCLP_DEFS} -D$2=1"
+        echo "yes"
+    else
+        echo "no"
+    fi
+}
+
+check_symbol "Clp_writeMps" "COINCLP_HAVE_WRITEMPS" \
+    'if (m) Clp_writeMps(m, "conftest.mps", 0, 1, 1.0);'
+check_symbol "Clp_modifyCoefficient" "COINCLP_HAVE_MODIFYCOEFFICIENT" \
+    'if (m) Clp_modifyCoefficient(m, 0, 0, 0.0, 0);'
+check_symbol "Clp_setRowName" "COINCLP_HAVE_SETNAMES" \
+    'char nm[4] = "r0"; if (m) Clp_setRowName(m, 0, nm);'
+check_symbol "Clp_maximumIterations" "COINCLP_HAVE_CLP_MAXIMUMITERATIONS" \
+    'if (m) return Clp_maximumIterations(m) < 0;'
+
+if [ "${COINCLP_DEFS#*HAVE_CLP_MAXIMUMITERATIONS}" = "${COINCLP_DEFS}" ]; then
+    printf "checking for maximumIterations... "
+    if compile_and_link "" "${SUBDIR_DEF}" <<CONFTEST
+#include <${CLP_HEADER}>
+int main(void) { Clp_Simplex *m = Clp_newModel(); int n = maximumIterations(m);
+                 Clp_deleteModel(m); return n < 0; }
+CONFTEST
+    then
+        echo "yes (the unprefixed Clp 1.17 spelling)"
+    else
+        echo "no"
+        echo "ERROR: neither Clp_maximumIterations() nor maximumIterations() is available" >&2
+        exit 1
+    fi
+fi
+
+rm -f conftest conftest.cpp conftest.log conftest.mps
+
+# ---------------------------------------------------------------- output
+
+sed -e "s|@COINCLP_CPPFLAGS@|${COINCLP_DEFS} ${CLP_CFLAGS}|" \
+    -e "s|@COINCLP_LIBS@|${CLP_LIBS}|" \
+    src/Makevars.in > src/Makevars
+
+echo "${PKG_NAME}: PKG_CPPFLAGS = ${COINCLP_DEFS} ${CLP_CFLAGS}"
+echo "${PKG_NAME}: PKG_LIBS = ${CLP_LIBS}"
+
+exit 0

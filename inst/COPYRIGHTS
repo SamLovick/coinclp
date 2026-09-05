@@ -1,0 +1,13 @@
+The coinclp package is licensed under the Eclipse Public License, as
+recorded in the License field of DESCRIPTION.
+
+coinclp links against COIN-OR Clp, which is a separate work distributed
+under the Eclipse Public License 2.0 by the COIN-OR Foundation and
+contributors <https://github.com/coin-or/Clp>. Clp is not included in this
+package and must be installed on the system.
+
+The compatibility layer in R/compat-clpAPI.R reproduces the function names
+and argument names of the clpAPI package by Gabriel Gelius-Dietrich, which
+was distributed under the GNU General Public License version 3, so that code
+written against clpAPI keeps working. No code from clpAPI is used; the
+implementation here is independent.

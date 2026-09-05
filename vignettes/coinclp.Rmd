@@ -1,0 +1,187 @@
+---
+title: "Linear programming with Clp"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Linear programming with Clp}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(coinclp)
+```
+
+Clp is the linear programming code of the COIN-OR project: a simplex
+implementation with a barrier alternative, presolve, and warm starts. This
+package binds its callable library.
+
+```{r version}
+clp_version()$version
+```
+
+## Solving a problem in one call
+
+A small product mix problem. Two products, three resource constraints,
+maximise the contribution.
+
+```{r solve}
+A <- rbind(material = c(120, 210),
+           labour   = c(110,  30),
+           capacity = c(  1,   1))
+b <- c(15000, 4000, 75)
+
+fit <- clp_solve(c(143, 60), A, "<=", b, max = TRUE,
+                 col_names = c("x", "y"), row_names = rownames(A))
+fit
+```
+
+The solution, the shadow prices and the reduced costs come back together.
+
+```{r solution}
+fit$solution
+fit$duals
+fit$reduced_costs
+```
+
+A zero dual marks a resource that is not binding: here the material
+constraint has slack, while labour and capacity are tight.
+
+```{r activity}
+data.frame(row = rownames(A), activity = fit$row_activity, limit = b,
+           dual = fit$duals)
+```
+
+### Ranged constraints and free variables
+
+`dir` and `rhs` cover one-sided rows. For a row bounded on both sides, give
+`row_lower` and `row_upper` instead. Variable bounds default to `[0, Inf)`
+and are set with `lower` and `upper`; `-Inf` makes a variable free.
+
+```{r ranged}
+clp_solve(c(1, 1), rbind(c(1, 1)),
+          row_lower = 2, row_upper = 5,
+          lower = -Inf, upper = Inf)$objval
+```
+
+### Sparse input
+
+Real models are sparse. Any of a `Matrix` sparse matrix, a
+`slam::simple_triplet_matrix` or plain triplets can be passed straight in;
+nothing is densified on the way to the solver.
+
+```{r sparse, eval = requireNamespace("Matrix", quietly = TRUE)}
+set.seed(1)
+big <- Matrix::rsparsematrix(200, 500, density = 0.01)
+res <- clp_solve(rep(1, 500), big, ">=", rep(-1, 200), lower = 0, upper = 10)
+res$status_message
+```
+
+## Keeping a model
+
+`clp_solve()` builds a model, solves it and throws it away. When a problem
+is solved repeatedly with small changes -- a parametric study, a column
+generation loop, a rolling horizon -- build the model once and re-solve it,
+so Clp can start from the basis it already has.
+
+```{r model}
+model <- clp_model()
+clp_set_log_level(model, 0)
+clp_load_problem(model, ncols = 2, nrows = 3,
+                 start = c(0L, 3L, 6L),
+                 index = c(0L, 1L, 2L, 0L, 1L, 2L),
+                 value = c(120, 110, 1, 210, 30, 1),
+                 obj   = c(-143, -60),
+                 rowub = b)
+clp_initial_solve(model)
+c(objective = clp_objective_value(model), iterations = clp_iterations(model))
+```
+
+The problem is loaded column by column in compressed sparse column form:
+`start` says where each column begins, `index` holds 0-based row positions
+and `value` the coefficients. Because the low level functions follow the C
+API, positions are 0-based here, as in the Clp documentation. Maximisation
+is expressed by negating the objective, or by
+`clp_set_optimization_direction(model, -1)`.
+
+### Warm starts
+
+Keep the basis, change the model, hand the basis back:
+
+```{r warmstart}
+basis <- clp_status_array(model)
+
+clp_set_row_upper(model, c(15000, 4000, 70))
+clp_copyin_status(model, basis)
+clp_dual_simplex(model)
+
+c(objective = clp_objective_value(model), iterations = clp_iterations(model))
+```
+
+The re-solve takes no iterations at all: the old basis is still optimal for
+the tightened problem.
+
+### Choosing the algorithm
+
+```{r algorithms}
+for (alg in c("auto", "primal", "dual", "barrier")) {
+    fit <- clp_solve(c(143, 60), A, "<=", b, max = TRUE,
+                     control = clp_control(algorithm = alg))
+    cat(sprintf("%-8s %.4f\n", alg, fit$objval))
+}
+```
+
+`clp_control()` also carries the tolerances, the iteration and time limits,
+the scaling mode and whether to presolve. For finer control over presolve
+there is a `clp_options()` object with the individual transformations
+(`clp_options_set_do_dupcol()` and friends), passed to
+`clp_initial_solve_with_options()`.
+
+## MPS files
+
+```{r mps}
+path <- system.file("extdata", "productmix.mps", package = "coinclp")
+from_file <- clp_model()
+clp_set_log_level(from_file, 0)
+clp_read_mps(from_file, path)
+clp_col_names(from_file)
+clp_initial_solve(from_file)
+clp_objective_value(from_file)
+```
+
+Writing works the other way with `clp_write_mps()`. Clp only gained an MPS
+writer in its C API after the 1.17 series, so on a Clp without one -- the
+version Rtools ships, for instance -- the package writes the file itself.
+`clp_features()` says which entry points the current build has.
+
+```{r features}
+clp_features()
+```
+
+```{r cleanup, include = FALSE}
+clp_free(model)
+clp_free(from_file)
+```
+
+## Coming from clpAPI
+
+The archived clpAPI package is reproduced function for function, so code
+written against it runs here unchanged.
+
+```{r compat}
+lp <- initProbCLP()
+setLogLevelCLP(lp, 0)
+loadProblemCLP(lp, 2, 3, c(0, 3, 6), c(0, 1, 2, 0, 1, 2),
+               c(120, 110, 1, 210, 30, 1),
+               lb = c(0, 0), ub = c(1e30, 1e30), obj_coef = c(143, 60),
+               rlb = rep(-1e30, 3), rub = b)
+setObjDirCLP(lp, -1)
+solveInitialCLP(lp)
+status_codeCLP(getSolStatusCLP(lp))
+getObjValCLP(lp)
+delProbCLP(lp)
+```
+
+Note that clpAPI used 1e30 for an infinite bound, which is Clp's own
+convention and what `clp_inf()` returns. The `clp_solve()` interface accepts
+`Inf` and converts it.

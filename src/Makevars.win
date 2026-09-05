@@ -1,0 +1,9 @@
+## COIN-OR Clp is part of the Rtools toolchain (Rtools >= 4.3), so
+## pkg-config finds it without any download step.  The fallback covers a
+## toolchain where pkg-config is unavailable but the libraries are in place.
+
+CLP_CFLAGS = $(shell $(PKG_CONFIG) --cflags clp 2>/dev/null)
+CLP_LIBS = $(shell $(PKG_CONFIG) --libs clp 2>/dev/null)
+
+PKG_CPPFLAGS = $(if $(CLP_CFLAGS),$(CLP_CFLAGS),-I"$(LOCAL_SOFT)/include/coin")
+PKG_LIBS = $(if $(CLP_LIBS),$(CLP_LIBS),-lClpSolver -lClp -lCoinUtils -lbz2 -lz -lblas -lm)
