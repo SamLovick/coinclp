@@ -2,6 +2,12 @@
 % Please edit documentation in R/compat-clpAPI.R
 \name{clpPtr-accessors}
 \alias{clpPtr-accessors}
+\alias{clpPointer,clpPtr-method}
+\alias{clpPtrType,clpPtr-method}
+\alias{clpPtrType<-,clpPtr,character-method}
+\alias{isNULLpointerCLP,clpPtr-method}
+\alias{isCLPpointer,clpPtr-method}
+\alias{show,clpPtr-method}
 \alias{clpPointer}
 \alias{clpPtrType}
 \alias{clpPtrType<-}

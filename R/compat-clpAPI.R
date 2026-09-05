@@ -29,6 +29,9 @@ methods::setClass("clpPtr",
 #' @return \code{clpPointer()} the external pointer, \code{clpPtrType()} a
 #'   string, \code{isNULLpointerCLP()} and \code{isCLPpointer()} a logical.
 #' @name clpPtr-accessors
+#' @aliases clpPointer,clpPtr-method clpPtrType,clpPtr-method
+#'   clpPtrType<-,clpPtr,character-method isNULLpointerCLP,clpPtr-method
+#'   isCLPpointer,clpPtr-method show,clpPtr-method
 #' @examples
 #' lp <- initProbCLP()
 #' clpPtrType(lp)
