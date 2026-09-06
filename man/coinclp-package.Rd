@@ -24,7 +24,10 @@ Functions ending in \code{CLP} mirror the interface of the archived
 \code{\link{initProbCLP}}.
 
 Clp itself is not bundled: the package links against an installed Clp
-(1.16 or later).  On Windows the Rtools toolchain already provides it.
+(1.16 or later).  On Windows the Rtools toolchain provides it, from
+Rtools 4.3 on; a binary package from CRAN needs nothing installed at all.
+A Clp that pkg-config cannot find is pointed at with the \code{CLP_CFLAGS}
+and \code{CLP_LIBS} environment variables, on any platform.
 }
 \section{Index conventions}{
 

@@ -1,9 +1,21 @@
-## COIN-OR Clp is part of the Rtools toolchain (Rtools >= 4.3), so
-## pkg-config finds it without any download step.  The fallback covers a
-## toolchain where pkg-config is unavailable but the libraries are in place.
+## COIN-OR Clp is part of the Rtools toolchain from Rtools 4.3 on, so
+## pkg-config finds it without any download step.
+##
+## Flags are chosen in the same order as ./configure uses on Unix:
+##
+##   1. the CLP_CFLAGS and CLP_LIBS environment variables, for a Clp that
+##      lives somewhere else -- make imports the environment, so these are
+##      set here without a makefile assignment shadowing them
+##   2. pkg-config
+##   3. the Rtools library tree, for a toolchain without pkg-config
 
-CLP_CFLAGS = $(shell $(PKG_CONFIG) --cflags clp 2>/dev/null)
-CLP_LIBS = $(shell $(PKG_CONFIG) --libs clp 2>/dev/null)
+CLP_PC_CFLAGS = $(shell $(PKG_CONFIG) --cflags clp 2>/dev/null)
+CLP_PC_LIBS = $(shell $(PKG_CONFIG) --libs clp 2>/dev/null)
 
-PKG_CPPFLAGS = $(if $(CLP_CFLAGS),$(CLP_CFLAGS),-I"$(LOCAL_SOFT)/include/coin")
-PKG_LIBS = $(if $(CLP_LIBS),$(CLP_LIBS),-lClpSolver -lClp -lCoinUtils -lbz2 -lz -lblas -lm)
+CLP_RTOOLS_CFLAGS = -I"$(LOCAL_SOFT)/include/coin"
+CLP_RTOOLS_LIBS = -lClpSolver -lClp -lCoinUtils -lbz2 -lz -lblas -lm
+
+PKG_CPPFLAGS = $(if $(CLP_CFLAGS),$(CLP_CFLAGS),\
+                 $(if $(CLP_PC_CFLAGS),$(CLP_PC_CFLAGS),$(CLP_RTOOLS_CFLAGS)))
+PKG_LIBS = $(if $(CLP_LIBS),$(CLP_LIBS),\
+             $(if $(CLP_PC_LIBS),$(CLP_PC_LIBS),$(CLP_RTOOLS_LIBS)))

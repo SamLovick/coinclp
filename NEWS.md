@@ -1,3 +1,21 @@
+# coinclp 0.1.0.9000 (development version)
+
+Held for a 0.1.1 release once 0.1.0 is through CRAN; 0.1.0 is the version
+that was submitted, and none of this changes what it does.
+
+* `src/Makevars.win` now honours the `CLP_CFLAGS` and `CLP_LIBS`
+  environment variables, so a Clp installed outside the Rtools tree can be
+  built against on Windows too. They take precedence over pkg-config, which
+  in turn precedes the Rtools library tree, matching the order `configure`
+  uses on Unix.
+* The claim that Rtools ships Clp is now stated as what has been verified
+  (Rtools 4.5, with 4.3 and 4.4 using the same library tree) rather than as
+  a blanket one. Rtools 4.2 and earlier do not carry Clp, so source builds
+  on R 4.2 or older need `CLP_CFLAGS` and `CLP_LIBS`.
+* README says what a Windows user actually needs: nothing at all for a CRAN
+  binary, since Clp is static and ends up inside `coinclp.dll`; Rtools only
+  for a source build.
+
 # coinclp 0.1.0
 
 * First release.

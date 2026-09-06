@@ -21,7 +21,7 @@ Clp is not bundled; install the library first.
 
 | Platform | Command |
 | --- | --- |
-| Windows | nothing to do: Rtools 4.3 and later ship Clp |
+| Windows | nothing to do: Rtools ships Clp (verified on Rtools 4.5) |
 | Debian / Ubuntu | `sudo apt-get install coinor-libclp-dev` |
 | Fedora / RHEL | `sudo dnf install coin-or-Clp-devel` |
 | macOS | `brew install clp` |
@@ -40,6 +40,28 @@ If Clp sits somewhere `pkg-config` does not look:
 R CMD INSTALL coinclp \
   --configure-args='--with-clp-include=/opt/clp/include/coin --with-clp-lib=/opt/clp/lib'
 ```
+
+The `CLP_CFLAGS` and `CLP_LIBS` environment variables do the same job and
+work on every platform, Windows included:
+
+```sh
+CLP_CFLAGS="-I/opt/clp/include/coin" CLP_LIBS="-L/opt/clp/lib -lClp -lCoinUtils" \
+  R CMD INSTALL coinclp
+```
+
+### A note on Windows
+
+Installing the **binary** from CRAN needs nothing at all: no Rtools, no
+compiler, no COIN-OR installation. Clp is a static library in the Rtools
+tree, so it ends up inside `coinclp.dll`, whose only runtime dependencies
+are `R.dll` and the C runtime.
+
+Building **from source** on Windows — which is what `install_github()` does
+— needs Rtools, as any package with compiled code does. Clp is present in
+the Rtools 4.5 toolchain, which is what this package is tested against, and
+in 4.3 and 4.4, which use the same library tree. Rtools 4.2 and earlier do
+not carry Clp, so on R 4.2 or older either point the build at your own Clp
+with `CLP_CFLAGS` and `CLP_LIBS`, or use a current R.
 
 ## One call
 
