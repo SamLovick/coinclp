@@ -67,8 +67,10 @@ clp_solve(c(1, 1), rbind(c(1, 1)),
 ### Sparse input
 
 Real models are sparse. Any of a `Matrix` sparse matrix, a
-`slam::simple_triplet_matrix` or plain triplets can be passed straight in;
-nothing is densified on the way to the solver.
+`slam::simple_triplet_matrix` or plain triplets can be passed straight in.
+A sparse matrix goes to Clp as sparse: only the non-zero entries are passed,
+and the matrix is never expanded into a full grid of mostly zeros first,
+which for a large model is the difference between fitting in memory and not.
 
 ```{r sparse, eval = requireNamespace("Matrix", quietly = TRUE)}
 set.seed(1)
