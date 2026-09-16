@@ -88,11 +88,17 @@ available <- isAvailableFuncCLP("Clp_writeMps")
 stopifnot(is.logical(available), length(available) == 1L)
 stopifnot(identical(unname(isAvailableFuncCLP("no_such_function")), FALSE))
 
-## Save and restore round trip.
-snapshot <- tempfile()
-stopifnot(saveModelCLP(lp, snapshot) == 0)
-stopifnot(restoreModelCLP(lp, snapshot) == 0)
-unlink(snapshot)
+## Save and restore round trip.  Not run on CRAN: Clp's saveModel() writes a
+## struct whose trailing padding bytes are uninitialised (ClpSimplex.cpp,
+## Clp_scalars), which valgrind reports on CRAN's memtest machine.  The
+## behaviour is inside the Clp library, so the check is kept for continuous
+## integration, where NOT_CRAN is set, and skipped where it is not.
+if (identical(Sys.getenv("NOT_CRAN"), "true")) {
+    snapshot <- tempfile()
+    stopifnot(saveModelCLP(lp, snapshot) == 0)
+    stopifnot(restoreModelCLP(lp, snapshot) == 0)
+    unlink(snapshot)
+}
 
 ## Writing MPS works whichever entry point is available.
 mps <- tempfile(fileext = ".mps")

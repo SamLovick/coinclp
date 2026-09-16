@@ -1,8 +1,15 @@
-# coinclp 0.1.0.9000 (development version)
+# coinclp 0.1.1
 
-Held for a 0.1.1 release once 0.1.0 is through CRAN; 0.1.0 is the version
-that was submitted, and none of this changes what it does.
-
+* CRAN's valgrind run reported uninitialised bytes written to a file from
+  `clp_save_model()`. The bytes are the trailing padding of a struct that
+  Clp's own `saveModel()` writes whole (`ClpSimplex.cpp`, `Clp_scalars`),
+  so the report comes from inside the Clp library and is harmless, but it
+  cannot be silenced from R. The snapshot round trip is therefore no longer
+  exercised in CRAN's checks: the example on the `clp_save_model` help page
+  is marked not to run, and the corresponding test runs only where
+  `NOT_CRAN` is set, as it is on the package's continuous integration. The
+  functions themselves are unchanged, and the help page explains the
+  finding for anyone who runs valgrind themselves.
 * `src/Makevars.win` now honours the `CLP_CFLAGS` and `CLP_LIBS`
   environment variables, so a Clp installed outside the Rtools tree can be
   built against on Windows too. They take precedence over pkg-config, which

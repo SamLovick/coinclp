@@ -320,11 +320,21 @@ make_mps_names <- function(x, prefix) {
 #' but it is a fast way to hand a model back to the same solver later.
 #' \code{clp_restore_model()} replaces whatever the model held.
 #'
+#' A note for anyone running this under valgrind: Clp's \code{saveModel()}
+#' writes a C struct to the file whole, and the struct's trailing padding
+#' bytes are never assigned, so valgrind reports uninitialised bytes passed
+#' to \code{write()} (Clp 1.17, \file{ClpSimplex.cpp}, \code{Clp_scalars}).
+#' It is harmless, since padding is never read back, but it comes from inside
+#' the Clp library and cannot be silenced from R.  For a portable file that
+#' other software can read, use \code{\link{clp_write_mps}} instead.
+#'
 #' @param model A \code{"clp_model"} object.
 #' @param file Path of the snapshot file.
 #' @return Clp's integer return code, invisibly: 0 on success.
 #' @export
 #' @examples
+#' \dontrun{
+#' # Not run in checks: Clp's saveModel() trips valgrind, see Details.
 #' model <- clp_model()
 #' clp_load_problem(model, 1, 1, c(0L, 1L), 0L, 1, obj = 1, rowub = 2)
 #' path <- tempfile()
@@ -332,6 +342,7 @@ make_mps_names <- function(x, prefix) {
 #' clp_restore_model(model, path)
 #' clp_free(model)
 #' unlink(path)
+#' }
 clp_save_model <- function(model, file) {
     invisible(.Call(C_coinclp_save_model, clp_ptr(model), path.expand(file)))
 }
