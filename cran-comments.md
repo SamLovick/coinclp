@@ -1,35 +1,36 @@
-## coinclp 0.1.1
+## coinclp 0.1.2
 
-This update responds to the valgrind report listed under "Additional issues"
-for coinclp 0.1.0, flagged for fixing before 2026-10-07.
+A licence change, with no change to the code.
 
-### The valgrind finding
+### Why
 
-    Syscall param write(buf) points to uninitialised byte(s)
-       by ClpSimplex::saveModel(char const*)   Clp/src/ClpSimplex.cpp:6860
-       by coinclp_save_model                    src/coinclp_io.cpp:201
-     Address ... is 204 bytes inside a block of size 4,096
+The package was released as "License: EPL", which in an R DESCRIPTION means
+EPL 1.0, since that is the only Eclipse entry in R's licence database. Both
+the Free Software Foundation and the Eclipse Foundation record EPL 1.0 as
+incompatible with the GPL, and that blocks GPL-licensed packages from
+building on this one -- including ROI.plugin.coinclp, which imports ROI
+(GPL-3) and slam (GPL-2). The point was raised against the archived
+ROI.plugin.clp in 2018 and never answered there.
 
-Clp's saveModel() declares a Clp_scalars struct on the stack, assigns each
-of its fields, and fwrite()s the struct whole. The fields occupy 204 bytes
-and the struct is padded to 208; the four padding bytes at offset 204 are
-never assigned, and those are the bytes valgrind reports. The value is
-harmless, since padding is never read back by restoreModel(), and the write
-is inside the Clp library, so nothing in this package can initialise it.
-The same code is in Clp's current development branch.
+The package is now MIT, which is compatible with the GPL and with the
+Eclipse Public License of the Clp library it links against, so neither side
+is blocked. Clp's own EPL 2.0 does not elect the GPL secondary licence, so
+compatibility could not be inherited from upstream. No part of COIN-OR Clp
+is in this package's source: it is an independent binding, and EPL copyleft
+applies file by file, so it never extended to this code.
 
-coinclp 0.1.1 therefore stops exercising that entry point in CRAN's checks:
-the example on the clp_save_model help page is in \dontrun, with a comment
-saying why, and the test that round-trips a snapshot runs only where
-NOT_CRAN is set. The functions themselves are unchanged and remain
-documented, with the finding described on their help page.
+I am the sole author and copyright holder of coinclp, so the change is mine
+to make. It widens the permissions granted to users rather than narrowing
+them. A LICENSE file giving the year and copyright holder accompanies it, as
+CRAN requires for MIT.
 
-### Other changes
+### Also in this release
 
-* src/Makevars.win honours the CLP_CFLAGS and CLP_LIBS environment
-  variables, matching what configure offers on Unix.
-* The documentation states which Rtools versions have been verified to ship
-  Clp rather than making a blanket claim.
+inst/COPYRIGHTS previously said that Clp "is not included in this package".
+That is true of the source package but not of a binary: the Clp libraries
+are static, so a compiled coinclp contains Clp object code, and the Windows
+and macOS binaries built by CRAN distribute it under EPL 2.0. The file now
+records that and points at the upstream source, as EPL 2.0 section 3.2 asks.
 
 ## Test environments
 
@@ -43,5 +44,5 @@ documented, with the finding described on their help page.
 
 ## Reverse dependencies
 
-None on CRAN at the time of submission. ROI.plugin.coinclp, currently in
-the incoming queue, imports coinclp (>= 0.1.0) and is unaffected.
+ROI.plugin.coinclp imports coinclp (>= 0.1.0) and is unaffected by this
+release; its own licence change, to GPL-3, follows in a separate submission.
