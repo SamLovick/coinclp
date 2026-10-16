@@ -1,3 +1,16 @@
+# coinclp 0.1.2
+
+* The licence changes from EPL to MIT. `License: EPL` in an R package means
+  EPL 1.0, which the Free Software Foundation and the Eclipse Foundation
+  both record as incompatible with the GPL, and that blocked GPL-licensed
+  packages from building on this one. MIT is compatible with the GPL and
+  with the Eclipse Public License of Clp alike, so both sides work. The code
+  is unchanged, and the permissions granted to users are wider than before,
+  not narrower.
+* `inst/COPYRIGHTS` now records that binary builds contain Clp object code
+  under EPL 2.0, because the Clp libraries are static. The previous wording
+  described only the source package, where Clp is genuinely absent.
+
 # coinclp 0.1.1
 
 * CRAN's valgrind run reported uninitialised bytes written to a file from

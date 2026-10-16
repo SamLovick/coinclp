@@ -150,8 +150,14 @@ falls back to an MPS writer implemented in R.
 
 ## Licence
 
-The package is released under the Eclipse Public License, matching COIN-OR.
-Clp itself is a separate work under EPL 2.0 and is not distributed here.
+The package is released under the MIT licence, which is compatible both with
+the Eclipse Public License of COIN-OR and with the GPL of the R packages that
+build on this one.
+
+Clp itself is a separate work under EPL 2.0. The source package contains none
+of it. Binary builds do: the Clp libraries are static, so a compiled
+`coinclp` carries Clp object code under EPL 2.0, whose source is at
+<https://github.com/coin-or/Clp>. See `inst/COPYRIGHTS`.
 
 Prior art: the clpAPI package by Gabriel Gelius-Dietrich (GPL-3) defined the
 `*CLP` function names that the compatibility layer reproduces; none of its
